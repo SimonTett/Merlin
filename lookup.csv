@@ -1,0 +1,19 @@
+Experiment,Carbon,Time,Reference
+xocya,1000,50,Historical
+xocyb,1000,100,Historical
+xovdc,1000,200,Historical
+xocyd,500,50,Historical
+xocye,500,100,Historical
+xocyf,500,200,Historical
+xocyg,250,50,Historical
+xocyh,250,100,Historical
+xocyi,250,200,Historical
+xoaub,1000,50,Control
+xoaue,1000,100,Control
+xovfd,1000,200,Control
+xoauf,500,50,Control
+xoaug,500,100,Control
+xoauh, 500,200,Control
+xoauk,250,50 ,Control
+xoaul,250,100,Control
+xoaui,250,200,Control

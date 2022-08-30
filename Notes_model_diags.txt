@@ -1,0 +1,198 @@
+Model does not seem to conserve C in individual cpts of the Land/Veg largely because I suspect that TRIFFID diagnostic sampling is
+incorrect.
+
+However -- not sure why there are -ve Resp and Litter fluxes. Maybe because the model is unstable...
+
+To test this:
+1) Copy one of Viv's existing experiments -- 1000 GTC emission; 200 years then -ve emissions and run for 500 years.
+    New experiment is xovd#c
+2) Change it to be me
+3) run for 1 year on eddie (not eddie 3) from 505 years -- dumps are every 180 days with clim means every 12 months
+4) Reduce time to 1000 seconds from 172800
+5) Change TTRIFID to be every 10 days starting at 0. Made it the same as TDUMPMN.
+6) Process/Submit. After some hacking around with .ssh/know_hosts managed to get run submitted...
+ But failed becasue did not have read access on the carbon flux file..Asked Viv/Mike to rectify... Viv done so.
+ Resubmitted jon at 17:05@21/7/20 and ran. No end dump in dumps but to have one in M. But attempts to read with iris fail..
+ with error ValueError: Negative numbers not supported with splittable integers object
+Using xconv to convert to netCDF. iris fails to read the data...However, xarray can read it! Think want last field which is field 1397_2
+actually want field_1397
+
+
+5) Verify conservation from change in dump soil C stock
+Code:
+d=xarray.open_dataset('xovdca#da000002001c1+.nc').field1397[0,0,:,:]
+d0=xarray.open_dataset('xovdc.astart.nc').field1397[0,0,:,:]
+delta=xarray.open_dataset('nc/apy/xovdca#py000002001c1+.nc')
+litter = delta['UM_m01s19i005_vn405.0'].squeeze()
+resp = delta.soil_respiration_carbon_flux.squeeze()*24*60*60*360
+flux = litter-resp
+diff = change - flux
+plt.figure()
+diff.plot()
+
+And values conserve -- error is 10e-6 kg/m2/year.
+Changes to make -- stop model compiling!
+If works run control(s) again with correct diagnostics.. :-( and 1000 GTC emissions for 200 years.
+Means can extend the run.. So will do that for 100 years then need to get Mike to run his conversion code..
+
+
+
+Check ocean diags (TCO2 & anom flux). TCO2 is TDUMPMN which averages over all timesteps. Think Ocean has a split timestep...
+Looks OK but think can live with non-cons of ocn C.
+
+Usual edit to SUBMIT (STEP=2 -> 4; NRUN -> CRUN). Set up to run in 200 year chunks with what looks like enough time.
+
+
+23/7/20 -- model has ran -- quesed for about a day then took ~8 hours to run 100 years.
+then can test!
+
+Looks like it works -- still got some non-cons in the land but I think that is just random error from mean of c vs inst C.
+Will extend run to 505 years and then set up rest to go.
+
+If that works will set run tgt to 505 years and redo various other runs... Viv had run going in 200 year chunks.
+ My calculation suggests that you coudl run the whole 500(ish) years in one go -- q limit is 172800 seconds.
+ JOb took 8.5 hours so should be able to run for 550 years or so.
+ So will also change time for each job to 510 years. Note that means reprocessing and then hand edit to change SUBMIT.
+ Viv had run in for 505 years -- extended to 530.
+
+ Job submitted at 10:28
+
+ Need to run next 3 runs...
+ Control for historical 1000 Gtone runs (xocy#c) is xnyv#h
+ Differences are:
+
+ xnyv#h  rel to      xocy#c
+ Start yr 1850
+ Run len 655 years
+ xnyvh uses a constant value of CO2 to start with.
+ Uses a different start dump -- 'xnphda#da000001850c1+'
+Does Not override start time.
+Uses a difference Carbon ancillary file: 0_fr_2020.anc
+Set reference time to 1949 in dumping and meaning.
+
+Think safest thing to do is copy it and then modify to run as me + TRIFFID changes...
+New job is xovd#z
+
+1) Change it to be me. Do not forget email address..
+2) RUn on eddie
+3) run  for 670 years in 510 year chunks
+4) Change TTRIFID to be  same as TDUMPMN.
+ Meaning period every 1 dump period sampling every timestep and output at reg intervals of dump periods starting at 1 ending -1 and every 1.
+5) Check differences as expected. Yep!
+6) Process/Submit. Done at 11:13. Model compiled and is is queing...
+
+
+And will leave those to run (at least part) before doing the final two cases rel to "Control".
+Those can have a new directory just in case want to run some other cases
+
+Checking things a bit more carefully I think TRIFFID stuff in the dumps is offset... WHich is probably an artifact of my
+TRIFFID changes...  values in dump in old run are for 1850/12/30:23,99 day 529190.
+Days is inconsistent with data but days are since 0375... rather than 750???
+
+
+Looking at Viv's 2100 file -- 2000/12/30:23.00 / 35990. Pstar is day 36000 suggesting this field is 10 days behind...
+My equivalent 2100 file -- 2100/09/05:23.30 35914.979167 Pstar is day 36000 suggesting this field is 80ish days behind...
+
+and we've lost bit reproducibility... :-(
+SO start again. Run for 1 year with a 1000 seconds time limit for the first run.
+ Wonder if the dump has an odd mean in it rather than the state...
+ Anyhow will change the sampling frequency to 10 days to match the triffid timestep..
+ I guess that vegC is not part of the state.. but PFT diagnostic is inccorect too. AHh but I think LAI is the state variable
+ while VEG C is the diagnostic... OK so makes sense what I have in the dump is basically the mean over the past 6 months.
+ Could add an instantaneous TRIFFID diagnostic...
+ Think I am happy that run conserves..(enough). Error is about 1 % in a 100 years given an offset this seems OK.
+ Runs are going very slowly -- 11 minutes/sim year rather than 6 minutes/sim year.
+ put xovd#c back in on 25/7/20@21:04 -- it started runnign at 17:00ish but has been running painfully slowly. Case #z has been running as expected.
+ Think I will change to 16 cores -- for other runs. Hopefully that will lead to somewhat more consistent run time.
+
+ 27/7/20
+
+ New experiment, for control and 1000 gtonne/200 year sep  is xovf. WIll keep only cases #c and #j
+
+Changes to make to xovf#c:
+1) Change it to be me. Do not forget email address.. Done
+2) RUn on eddie Done
+3) Increase processes to 4x4 Done
+3) run  for 510 years in 510 year chunks Done
+4) Change TTRIFID to be  same as TDUMPMN.
+ Meaning period every 1 dump period sampling every timestep and output at reg intervals of dump periods starting at 1 ending -1 and every 1.
+5) Generate an instantaneous output once a year for TRIFFID C state (and maybe atmos state too.)
+Looks liek I can use TYEAR/UPAYR for that purpose.
+So just need to switch on those diagnostics...
+actually need to add them for the TRIFFID C values -- which are diagnosed, I think, for LAI on PFTs
+
+And then realised I was working on the wrong job -- should have been #d (10 year pulse) not #c (1 year pulse).
+So start over :-(
+
+
+
+xovf#d
+1) Change it to be me. Do not forget email address.. Done
+2) RUn on eddie Done
+3) Increase processes to 4x4 Done
+3) run  for 510 years in 510 year chunks.  Done
+4) Change TTRIFID to be  same as TDUMPMN. Done
+ Meaning period every 1 dump period sampling every timestep and output at reg intervals of dump periods starting at 1 ending -1 and every 1.
+5) Generate an instantaneous output once a year for TRIFFID C state (and maybe atmos state too.)
+Looks lik I can use TYEAR/UPAYR for that purpose. Also need to turn on atmos diags.
+So just need to switch on those diagnostics...
+actually need to add them for the TRIFFID C values -- which are diagnosed, I think, from LAI on PFTs.
+Just adding ones for which means are requested.
+
+Done
+6) Check differences as expected. Seems so -- usual opaque stash differencs
+7) Process/Submit. Done and job submitted at 12:38
+
+xovf#j
+1) Change it to be me. Do not forget email address.. Done
+2) RUn on eddie Done
+3) Increase processes to 4x4 Done
+3) run  for 510 years in 510 year chunks. Done
+4) Change TTRIFID to be  same as TDUMPMN.
+ Meaning period every 1 dump period sampling every timestep and output at reg intervals of dump periods starting at 1 ending -1 and every 1.
+5) Generate an instantaneous output once a year for TRIFFID C state (and  atmos state too.)
+
+For triffid "State" diagnostics with means copy them and set to TYEAR/UPAYR Done
+Turn on rest on TYEAR/UPAYR diagnostics.  Done
+
+6) Check differences as expected. Yes -- STASH hard to tell.
+7) Process/Submit. Done and job submitted at 13:01
+
+Models are compiling reconfig but not using random pert mod so not clear why I've lost bit reproducability..
+
+Run xovd#z finished (coz it ran out of time) have reached 2109 (starting in 1851) so basically 250 years.
+ Will just resubmit it as a crun but reduce the resubmission chunk to 250 years.  Made that change and job resubmitted@15:44
+
+ 28/7/20
+ Complained about slow running jobs.. Someone else stealing cores... Quite why that is possible is a mystery to me...
+ case xovd#c failed because it ran out of time. So resubmitted it.
+ xovd#z running OK.
+ While run xovf#d is also running slowly...
+
+ Eddie people found another job stealing cores which they (eventually) terminated. Mystery to me why jobs can do this...
+29/7/20
+Job xovd#z crashed -- because it ran beyond end of ancillary file. So can consider it done.
+job xovf#j was running nice and fast 2-3 minutes/year :-) till 6:53 when it started going very slowly.
+job xocfd was also runnign at about 2-3 minutes/sim year but slowed down do 7-8 minutes from about 08:00
+job xovd#c going normally (8 nodes abotu 2-3 minutes/sim year).
+
+Will 1) complain to eddie team
+2) Implement Mike's suggestion -- which will only help with resubmission.
+Which implies making changes on PUMA as will end up resubmitted job I suspect
+
+Testing conservation but now triffid data is offset by 10 days...
+
+Looking quite carefully I think there is  "limiter" in the soil Carbon which leads to non flux conservation.
+If soilC goes below 1e-6 model restores it to 1e-6. See code in decay2a.f where there is a limiter value.
+As far as I can tell that won't modify the resperation (which the only thing that could be changed) to correct for this.
+Thus TRIFFID does not conserve C (in the soil system) error looks to be fairly small ~ 0.02 PgC/yr if everywhere..
+VegC seems to be OK.
+Problem is, I think, caused by -ve litter.. Which is a mystery as to why that happens.
+But when net is -ve ~(because of thiso) the limiter will put soil C back and so end up with gain of C to the system.
+Begs q why -ve litter which occurs fairly frequently... I think best thing to do is ask Chris Jones! Also apparent on the PFTs
+
+run xovf#d completed -- reached year 2500
+xovf#j will likely complete tonight/early AM too. RUnning on 16 cores does speed things up a lot./
+
+Runs all finished exceept for xovf#j which ran out of time coz it was runnign v slowly. Resubmitted it it still in the Q 24 hours later..
+
