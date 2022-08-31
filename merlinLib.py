@@ -157,6 +157,7 @@ def read_forcing(var, exper, use_cache=True,readCube=False,decadal=False):
 _ocn_file = _merlin_cache_dir/'ancil'/ 'sea_water_potential_temperature.nc'
 if not _ocn_file.exists(): # no local copy so copy it!
     import shutil
+
     shutil.copy(file_path(references['Historical'], 'opx', 'sea_water_potential_temperature.nc'),_ocn_file)
 
 ocnVol = ocn_vol(str(_ocn_file))  # volume of ocean
@@ -615,9 +616,10 @@ named_regions=dict(Amazonia=iris.Constraint(longitude=lambda  cell: 210. <= cell
                    Indonesia=iris.Constraint(longitude=lambda  cell: 90 <= cell < 210, latitude=topics)
                    )
 @functools.lru_cache(maxsize=6000)
-def read_data(var, exper, use_cache=True,decadal=False,region=None,useCache=None):
+def read_data(var, exper, use_cache=True,decadal=False,region=None):
     """
-    Read and process data for variable and experiment.
+    Read and process data for variable and experiment. Note value is cached which means all parameterers must be
+       allowed keys for dict.
     :param var -- variable wanted. See var_lookup for what is allowed
     :param exper -- UM experiment name
     :param use_cache (optional -- default is True) use the cache -- though overwritten by clean_cache
@@ -626,8 +628,6 @@ def read_data(var, exper, use_cache=True,decadal=False,region=None,useCache=None
     """
     # various magic things..
 
-    if useCache is None:
-        useCache = use_cache # general value
 
     varprops = var_properties(var,exper=exper,decadal=decadal)  # properties for variable
     func = varprops.pop('func')
@@ -652,7 +652,7 @@ def read_data(var, exper, use_cache=True,decadal=False,region=None,useCache=None
         region_str = ''
 
     proc_path = proc_dir / (region_str+"_".join((var, exper)) + ".nc")
-    if (not clean_cache) and useCache and proc_path.exists():
+    if (not clean_cache) and use_cache and proc_path.exists():
         if debug:  print("Using cache at ", proc_path)
         cube = iris.load_cube(str(proc_path))  # read the processed data
 
