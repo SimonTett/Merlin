@@ -195,6 +195,10 @@ var_lookup = {
     'AtmC': dict(file='mass_fraction_of_carbon_dioxide_in_air.nc',
                    Constraint=iris.Constraint(model_level_number=11), method=iris.analysis.SUM,
                    scale=CO2_to_C * mAtmCol * 1e-12, units=PgC),
+    'AtmCO2_Profile': dict(file='mass_fraction_of_carbon_dioxide_in_air.nc',
+                  method=iris.analysis.MEAN),
+    'AtmT_Profile': dict(file='air_temperature_3.nc', method=iris.analysis.MEAN,
+                    collapse_dims=['longitude','latitude']),
     'Forcing':dict(func=read_forcing),
     'MLD': {'file': 'UM_m02s00i137_vn405.0.nc', 'Ocean': True},
     'SAT': dict(file='air_temperature.nc',squeeze=True),
@@ -567,25 +571,29 @@ def proc_all(var, plot_constraint=None, ratio=False):
 
     return (refs, diffs, timeseries)
 
-
-def delta(variable,experiment,ratio=None):
+@functools.lru_cache()
+def delta(variable,experiment,refName=None,ratio=None):
     """
     Returns processed variable for specified experiment and then differenced against reference simulation.
+    Caches difference.
     :arg variable -- variable you want.
-    :arg experiment -- experiment wanted. If list like then will interate over)
-    :arg ratio -- If true compute ratio betnween experiemnt and reference.
+    :arg experiment -- experiment wanted. If list like then will interate over
+    :arg refName -- name of Reference (Control or Historical normally). If not specified worked out from lookup table
+    :arg ratio -- If true compute ratio between experiment and reference.
 
     """
-    if isinstance(experiment,str):
 
-        ref_exper = references[lookup.loc[experiment].Reference]
+    if isinstance(experiment,str):
+        if refName is None:
+            refName = lookup.loc[experiment].Reference
+        ref_exper = references[refName]
         ts_sim = read_data(variable,experiment)
         ts_ref = read_data(variable,ref_exper)
         delta_ts = diff(ts_sim,ts_ref,ratio=ratio)
     else:
         delta_ts = dict()
         for exper in experiment: # a list so iterate over it.
-            delta_ts[exper]= delta(variable,exper)
+            delta_ts[exper]= delta(variable,exper,refName=refName)
 
     return delta_ts
 @functools.lru_cache(maxsize=6000)

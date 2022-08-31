@@ -1,0 +1,34 @@
+Notes for mod to use CO2 from namelist when have interactive CO2. Goal being to suppress climate/carbon feedbacks so can
+see impact of such feedbacks on FAMOUS.
+
+Have variables L_CO2_3D & L_CO2_INTERACTIVE. I think there is a lack of consistency in use of these...
+
+R2_SWRAD & R2_LWRAD  both get CO2_DIM1, CO2_DIM2, CO2_3D and L_CO2_3D passed in. With FIRST_POINT_CO2 used as pointer to first (??) CO2 point on the grid.
+CO2_3D gets set by copying in data from D1 array.
+
+Value is there in the namelist even though not visible in the UMUI.
+So “Hack” would be to use this value (or actually whatever is the mean value for the Control). Which will need to be put in the namelist.
+
+Then I think the hack is to replace
+CO2_3D(I, LEVEL) = D1(JCO2(1)+POINT-1)                        ACN2F405.57
+With
+CO2_3D(I, LEVEL)= CO2_MMR
+
+
+
+Experiment is xovfz.
+Add Mod: ~stett2/um/mods/st/fix_co2.mf77
+Ten year run.  Done
+Set CO2_MMR to 8.8e-4 (double ref value).
+Compiled and ran for 10 years.
+
+So how to test?
+1)	Put in a very high CO2_MMR in the namelist & run for 10 years
+2)	Expect T to shoot up and Strat T to fall. Surface T goes up compared to reference.
+  Strat T falls by ~5K in first year and then slowly rises -- preseumably coz getting more IR from trop
+3)	But total Carbon to stay fairly constant – would expect an increase in Atmos C as land outgases.
+  total C stays constant. AtmC increases, SoilC decreases. Small changes in OcC (+ve) and Veg C (-ve).
+
+Overall behaving as expected. Will then run model for 500 years to get impulse response of the system with no carbon feedback to doubling CO2.
+We can compute the additional forcing and so additional impact of temperature driven response...
+Need a new control with CO2 set at  0.00044 (to 2 sf) and using mod. But we already have CO2 set to 4.4e-4 so not much needed there!
