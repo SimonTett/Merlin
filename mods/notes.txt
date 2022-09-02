@@ -17,7 +17,7 @@ CO2_3D(I, LEVEL)= CO2_MMR
 
 
 Experiment is xovfz.
-Add Mod: ~stett2/um/mods/st/fix_co2.mf77
+Add Mod: xovdy
 Ten year run.  Done
 Set CO2_MMR to 8.8e-4 (double ref value).
 Compiled and ran for 10 years.

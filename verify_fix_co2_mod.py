@@ -4,8 +4,9 @@ Code to verify that fixed CO2 mod is working as expected
 import  matplotlib.pyplot as plt
 import merlinLib
 import iris.plot
-sim = 'xovfz' # name of simulation
-ref = 'Control' # reference name
+#sim = 'xovfz' # name of simulation
+sim = merlinLib.references['Historical_fixC']
+ref = 'Historical' # reference name
 fig,axes=plt.subplots(nrows=3,ncols=1,clear=True,sharex=True,figsize=[7,10],num='verify_fix_co2_mod')
 # plot SAT delta
 ts= merlinLib.delta('SAT',sim,refName=ref)
@@ -16,6 +17,8 @@ sum=0
 for var in ['AtmC','VegC','SoilC','OcC']:
     ts = merlinLib.delta(var, sim, refName=ref)
     iris.plot.plot(ts.coord('year'), ts, axes=axes[1],label=var)
+    if isinstance(sum,iris.cube.Cube):
+        ts= ts.interpolate([('time',sum.coord('time').points)],iris.analysis.Linear())
     sum += ts
 iris.plot.plot(sum.coord('year'), sum, axes=axes[1],label='Total')
 axes[1].set_title('Carbon')

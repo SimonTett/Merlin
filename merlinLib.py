@@ -51,10 +51,12 @@ except OSError:
 
 # variables for human editing..
 lookup = pd.read_csv('lookup.csv', header=0, index_col=0)
+lookup_extra = pd.read_csv('lookup_extra.csv', header=0, index_col=0)
 #references = {'Historical': 'xnyvh', 'Control': 'xoauj', 'Spinup': 'xnnqm'}  # reference experiments
-references = {'Historical':'xovdz','Historical_bad': 'xnyvh','Control':'xovfj',
-              'Control_bad': 'xoauj', 'Spinup': 'xnnqm','Historical_bad_1750':'xnphd','Spinup_old':'xnphc'}  # reference experiments
+references = {'Historical':'xovdz','Historical_bad': 'xnyvh','Historical_fixC':'xovdx','Control':'xovfj',
+              'Control_bad': 'xoauj', 'Control_fixC':'xovfr','Spinup': 'xnnqm','Historical_bad_1750':'xnphd','Spinup_old':'xnphc'}  # reference experiments
 # NOTE that Historical_bad_1750 & Spinup_old only have decadal mean data
+# _fixC cases are with fixed CO2 (4.4e-4 mmr)  in the radiation scheme
 
 start_emission = 2020 # when emissions start
 
@@ -83,6 +85,37 @@ def ocn_vol(file):
     vol = cube.collapsed(['depth', 'latitude', 'longitude'], iris.analysis.SUM, weights=volume_weights)
     return vol.data
 
+
+def netflux(var,exper,**kwargs):
+    """
+    Compute the netflux
+    :param var: Should be related to netflux!
+    :param exper: name of experiment to use
+    :param kwargs: All passed to read_data
+    :return: netflux timeseries
+    """
+    vars = ['OLR','InSW','OutSW']
+    if var == 'NetFlux':
+        pass # vars are fine
+    elif var == 'NetFlux_ZM':
+        vars = [v+"_ZM" for v in vars]
+    else:
+        raise NotImplementedError(f"Not implemented {var}")
+
+    netFlux=0
+    if kwargs.get('readCube',False):
+        read_fn = read_file
+    else:
+        read_fn = read_data
+    for v in vars:
+        ts=read_fn(v,exper,**kwargs)
+        if v == 'InSW':
+            ts = -ts
+
+        netFlux -= ts
+
+    netFlux.rename(var + '-' + exper)  # not a good idea to do this when caching. Not sure why
+    return netFlux
 
 
 def read_land(var, exper, use_cache=True,readCube=False,decadal=False):
@@ -152,6 +185,7 @@ def read_forcing(var, exper, use_cache=True,readCube=False,decadal=False):
     f = cube/ref_atm_co2
     f = 5.35 * iris.analysis.maths.log(f)  # Myhre formula.
     f.units=cf_units.Unit('W m-2') # forcing is W/m^2
+    f.rename(var + '-' + exper)
     return f
 
 _ocn_file = _merlin_cache_dir/'ancil'/ 'sea_water_potential_temperature.nc'
@@ -260,7 +294,11 @@ var_lookup = {
     # diag claims to be  g C m^{-2} day^-12
     'OcZooFluxC': dict(file='UM_m02s30i253_vn405.0.nc', Ocean=True, squeeze=True, # not convinced scaling is correct..
                     method=iris.analysis.SUM, scale=ocn_C_scale*1000, units=PgC_per_yr),  # diag is g C m^{-2} day^-1
-    # Fraction  PFT
+    # Radiation fluxes
+    'OLR': dict(file='toa_outgoing_longwave_flux.nc'),
+    'InSW':dict(file='toa_incoming_shortwave_flux.nc'),
+    'OutSW':dict(file='toa_outgoing_shortwave_flux.nc'),
+    'NetFlux':dict(func=netflux),
 
     ## non conservation term.
     # Unit is mili-moles per liter per second (or 10 moles over the whole of the 10m top layer)
@@ -590,6 +628,7 @@ def delta(variable,experiment,refName=None,ratio=None):
         ts_sim = read_data(variable,experiment)
         ts_ref = read_data(variable,ref_exper)
         delta_ts = diff(ts_sim,ts_ref,ratio=ratio)
+        delta_ts.rename(f"{ts_sim.name()} minus {ts_ref.name().split('-')[-1]}")
     else:
         delta_ts = dict()
         for exper in experiment: # a list so iterate over it.
