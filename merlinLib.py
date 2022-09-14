@@ -50,8 +50,9 @@ except OSError:
     land_frac_path = _merlin_cache_dir / 'ancil' / 'qrparm.mask_frac.nc'
 
 # variables for human editing..
-lookup = pd.read_csv('lookup.csv', header=0, index_col=0)
-lookup_extra = pd.read_csv('lookup_extra.csv', header=0, index_col=0)
+info = pd.read_csv('lookup.csv', header=0, index_col=0)
+lookup = info.query("FixCO2==False") # for compatability with old code
+lookup_fix = info.query("FixCO2==True")
 #references = {'Historical': 'xnyvh', 'Control': 'xoauj', 'Spinup': 'xnnqm'}  # reference experiments
 references = {'Historical':'xovdz','Historical_bad': 'xnyvh','Historical_fixC':'xovdx','Control':'xovfj',
               'Control_bad': 'xoauj', 'Control_fixC':'xovfr','Spinup': 'xnnqm','Historical_bad_1750':'xnphd','Spinup_old':'xnphc'}  # reference experiments
@@ -239,6 +240,7 @@ var_lookup = {
     'Land_SAT': dict(file='air_temperature.nc',  Land=True),
     'precip': dict(file='precipitation_flux.nc'),
     'Land_precip': dict(file='precipitation_flux.nc',  Land=True),
+    'Snow':dict(file='snowfall_amount.nc',land=True), # snow amount (km/m^2
     'OcC': dict(file='UM_m02s00i103_vn405.0.nc', Ocean=True, scale=ocn_C_scale,
                      method=iris.analysis.SUM, units=PgC, collapse_dims=ocn_dims),
     # data is CO2 in moles per liter??
@@ -344,19 +346,24 @@ for k,v in var_lookup.items():
 
 var_lookup.update(new_vars)
 
-def gen_name(exper):
+def gen_name(exper,series=None):
     """
     Generate standard name from experiment name using lookup
     :param exper: name of experiment
     :return: standard name
     """
-    series = lookup.loc[exper]
+    if series is None:
+        series = lookup.loc[exper]
 
-    if series.Reference == 'Control':
+    if series.Reference == 'Control' or series.Reference == 'Control_fixC':
         name = 'C'
     else:
         name = 'H'
-    name += f"_{series.Carbon:d}C_{series.Time:d}y"
+    if series.FixCO2:
+        end_name='F'
+    else:
+        end_name=''
+    name += f"_{series.Carbon:d}C_{series.Time:d}y{end_name}"
 
     return name
 
@@ -579,12 +586,16 @@ def properties(series, **override):
                          Control={1000: 'blue', 500: 'cornflowerblue', 250: 'cyan'})
 
     marker_lookup = {50: 'd', 100: 'h', 200: '*'}  # indexed by time
-
-    colour = colour_lookup[series.Reference][series.Carbon]
+    if series.FixCO2:
+        linestyle='dashed'
+    else:
+        linestyle='solid'
+    colour = colour_lookup[series.Reference.replace('_fixC','')][series.Carbon]
     # alpha = alpha_lookup[series.Carbon]
     alpha = 1
     marker = marker_lookup[series.Time]
-    result = dict(color=colour, alpha=alpha, marker=marker, linewidth=2)
+    label = gen_name('',series=series)
+    result = dict(color=colour, alpha=alpha, marker=marker, linewidth=2,linestyle=linestyle,label=label)
     result.update(**override)
     return result
 
@@ -610,7 +621,7 @@ def proc_all(var, plot_constraint=None, ratio=False):
     return (refs, diffs, timeseries)
 
 @functools.lru_cache()
-def delta(variable,experiment,refName=None,ratio=None):
+def delta(variable,experiment,refName=None,ratio=None,meanValue=None):
     """
     Returns processed variable for specified experiment and then differenced against reference simulation.
     Caches difference.
@@ -627,7 +638,14 @@ def delta(variable,experiment,refName=None,ratio=None):
         ref_exper = references[refName]
         ts_sim = read_data(variable,experiment)
         ts_ref = read_data(variable,ref_exper)
-        delta_ts = diff(ts_sim,ts_ref,ratio=ratio)
+        if meanValue: # use mean from reference value
+            ts_ref = ts_ref.collapsed('time',iris.analysis.MEAN)
+            if ratio:
+                delta_ts = ts_sim/ts_ref
+            else:
+                delta_ts = ts_sim - ts_ref
+        else:
+            delta_ts = diff(ts_sim,ts_ref,ratio=ratio)
         delta_ts.rename(f"{ts_sim.name()} minus {ts_ref.name().split('-')[-1]}")
     else:
         delta_ts = dict()
@@ -663,13 +681,16 @@ named_regions=dict(Amazonia=iris.Constraint(longitude=lambda  cell: 210. <= cell
                    Indonesia=iris.Constraint(longitude=lambda  cell: 90 <= cell < 210, latitude=topics)
                    )
 @functools.lru_cache(maxsize=6000)
-def read_data(var, exper, use_cache=True,decadal=False,region=None):
+def read_data(var, exper, use_cache=None,decadal=False,region=None):
     """
     Read and process data for variable and experiment. Note value is cached which means all parameterers must be
        allowed keys for dict.
     :param var -- variable wanted. See var_lookup for what is allowed
     :param exper -- UM experiment name
-    :param use_cache (optional -- default is True) use the cache -- though overwritten by clean_cache
+    :param use_cache (optional -- default is None) use the cache -- though overwritten by clean_cache
+       If True -- use the cache
+       if False -- do not use the cache
+       If None -- set True if cache newer than file; False if not
     :param regions -- list of names regions or single string. regions must exist in merlinLib.named_regions
     example: zm = merlinLib.read_data('SAT_ZM','xovdz')
     """
@@ -699,6 +720,9 @@ def read_data(var, exper, use_cache=True,decadal=False,region=None):
         region_str = ''
 
     proc_path = proc_dir / (region_str+"_".join((var, exper)) + ".nc")
+    if use_cache is None:
+        use_cache = proc_path.exists() and (proc_path.stat().st_mtime > path.stat().st_mtime)
+
     if (not clean_cache) and use_cache and proc_path.exists():
         if debug:  print("Using cache at ", proc_path)
         cube = iris.load_cube(str(proc_path))  # read the processed data
@@ -812,7 +836,7 @@ def aggLoad(filepath, volAvg=False, method=iris.analysis.MEAN, constraint=None, 
         return mod_global
 
 # interpolate values
-def interp_by_coord(var,ref,coord='time'):
+def interp_by_coord(var,ref,coord='year'):
     """Interpolate var to ref times and add (back in ) bounds as iris interpolate does not do this. Sigh
     :param var -- variable to interpolated
     :param ref -- reference variable that provides co-ord values
@@ -823,38 +847,61 @@ def interp_by_coord(var,ref,coord='time'):
 
     try:
         try:
-            #print("====================")
-            #print(f"{coord}\n","ref:",ref,"\n","var: ",var)
-            #print("xxxxxxxxxxxxxxxxxxxxx")
             result = var.interpolate([(coord, ref.coord(coord).points)], iris.analysis.Linear())
+
         except ValueError:
             return var # no appropriate dim so just return it.
         result.coord(coord).guess_bounds()
     except AttributeError: # hope this is an xarray
+
         result = var.interp({coord:ref[coord]})
+
     return result
+
+def common_period(cube_list,coord='year'):
+    """
+    Constrain everything to the same common period
+    :param ts_list: list of timeseries
+    :return: list of timeseries constrained to max of min and min of max
+    """
+    minC=[]
+    maxC=[]
+    for cube in cube_list:
+        coordV = cube.coord(coord).points
+        minC.append(coordV.min())
+        maxC.append(coordV.max())
+
+    minC = np.max(minC)
+    maxC = np.min(maxC)
+    cfunc = lambda pt: minC <= pt <= maxC
+    constraint = iris.Constraint(coord_values={coord:cfunc})
+    cons_cubes = [cube.extract(constraint) for cube in cube_list]
+    return cons_cubes
 
 
 def diff(ts, ref, ratio=False):
     """
     Compute difference between ts and reference field.
-    Reference field is interpolated to time coords of reference field
+    Both fields are extracted to common minimum period
+    Reference field is interpolated to time coords of ts field
     :param ts -- field 1
     :param ref -- field 2
 
     """
-    interp = interp_by_coord(ref,ts)
+
+    ts_cons,ref_cons = common_period([ts,ref])
+    interp = interp_by_coord(ref_cons, ts_cons)
     try:
         if ratio:
-            diff = ts / interp
+            diff = ts_cons/interp
         else:
-            diff = (ts - interp)
+            diff = ts_cons-interp
     except ValueError:  # iris sucks and throws error for this with no useful explanation...
-        diff = ts.copy()
+        diff = ts_cons.copy()
         if ratio:
-            diff.data = ts.data / interp.data
+            diff.data = ts_cons.data / interp.data
         else:
-            diff.data = ts.data - interp.data
+            diff.data = ts_cons.data - interp.data
 
     return diff
 

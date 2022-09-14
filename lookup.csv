@@ -1,19 +1,21 @@
-Experiment,Carbon,Time,Reference
-xocya,1000,50,Historical
-xocyb,1000,100,Historical
-xovdc,1000,200,Historical
-xocyd,500,50,Historical
-xocye,500,100,Historical
-xocyf,500,200,Historical
-xocyg,250,50,Historical
-xocyh,250,100,Historical
-xocyi,250,200,Historical
-xoaub,1000,50,Control
-xoaue,1000,100,Control
-xovfd,1000,200,Control
-xoauf,500,50,Control
-xoaug,500,100,Control
-xoauh, 500,200,Control
-xoauk,250,50 ,Control
-xoaul,250,100,Control
-xoaui,250,200,Control
+Experiment,Carbon,Time,Reference,FixCO2,Notes
+xocya,1000,50,Historical,False, Error in PFT fluxes
+xocyb,1000,100,Historical,False, Error in PFT fluxes
+xovdc,1000,200,Historical,False,
+xocyd,500,50,Historical,False, Error in PFT fluxes
+xocye,500,100,Historical,False, Error in PFT fluxes
+xocyf,500,200,Historical,False, Error in PFT fluxes
+xocyg,250,50,Historical,False, Error in PFT fluxes
+xocyh,250,100,Historical,False, Error in PFT fluxes
+xocyi,250,200,Historical,False, Error in PFT fluxes
+xoaub,1000,50,Control,False, Error in PFT fluxes
+xoaue,1000,100,Control,False, Error in PFT fluxes
+xovfd,1000,200,Control,False,
+xoauf,500,50,Control,False, Error in PFT fluxes
+xoaug,500,100,Control,False, Error in PFT fluxes
+xoauh, 500,200,Control,False, Error in PFT fluxes
+xoauk,250,50 ,Control,False, Error in PFT fluxes
+xoaul,250,100,Control,False, Error in PFT fluxes
+xoaui,250,200,Control,False, Error in PFT fluxes
+xovdk,1000,200,Historical_fixC,True, Rad CO2 fixed at 4.4e-4 mmr
+xovfk,1000,200,Control_fixC,True, Rad CO2 fixed at 4.4e-4 mmr

@@ -33,7 +33,7 @@ titleDiff='Historical - Control'
 varsPlot = ['AtmC', 'OcC', 'LandC','Forcing','SAT', 'icef']
 titles = ['Atmosphere C','Ocean C', 'Land C', 'CO$_2$ Forcing','Sfc. Air Temp.', 'Ice Area']
 xtitles = ['Pg C', 'Pg C','Pg C','Wm$^{-2}$','K', r'$10^{12}$m$^2$']
-fig, axes = plt.subplots(nrows=3, ncols=2, num="sfc_vars", clear=True, figsize=[7.5, 8],sharex=True,gridspec_kw=dict(wspace=0.2,top=0.95,bottom=0.15))
+fig, axes = plt.subplots(nrows=3, ncols=2, num="sfc_vars", clear=True, figsize=[7.5, 8],sharex=True,gridspec_kw=dict(wspace=0.2))#,top=0.95,bottom=0.05))
 hist = merlinLib.lookup.query('Reference=="Historical" & Time==200 & Carbon==1000').index[0]
 ctl = merlinLib.lookup.query('Reference=="Control" & Time==200 & Carbon==1000').index[0]
 

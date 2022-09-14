@@ -32,3 +32,7 @@ So how to test?
 Overall behaving as expected. Will then run model for 500 years to get impulse response of the system with no carbon feedback to doubling CO2.
 We can compute the additional forcing and so additional impact of temperature driven response...
 Need a new control with CO2 set at  0.00044 (to 2 sf) and using mod. But we already have CO2 set to 4.4e-4 so not much needed there!
+
+Setup and submitted two 1000 Pg Pulse simulations
+xovf#k -- fixed CO2 off the end of the spinup.
+xovd#k -- fixed CO2 of the fixed CO2 historical simulation. (xpvd#x).
