@@ -38,8 +38,8 @@ return_xarray = False # if True return xarray dataArrays using DataAray.from_iri
 
 # Values below are basic configuration variables. Set values to what needed for your data.
 # these might be better in a separate file.. though then would need to modify their names!
-_merlin_root_dir = pathlib.Path("/exports/csce/datastore/geos/groups/merlin/FAMOUS") # linux path
-_merlin_root_dir = pathlib.Path(r"\\csce.datastore.ed.ac.uk\csce\geos\groups\merlin\top\stett2\AggData") # agg data on datastore
+
+_merlin_root_dir = pathlib.Path(r"\\csce.datastore.ed.ac.uk\csce\geos\groups\merlin\top\stett2\AggData") # agg data on datastore. Note windows path.
 # cache path root
 _merlin_cache_dir = pathlib.Path(r"C:\Users\stett2\OneDrive - University of Edinburgh\data\MERLIN_data") # local windows path (data can be copied here from linux)
 land_frac_path = _merlin_root_dir / 'ancil' / 'qrparm.mask_frac.nc'
@@ -51,7 +51,7 @@ except OSError:
 
 # variables for human editing..
 info = pd.read_csv('lookup.csv', header=0, index_col=0)
-lookup = info.query("FixCO2==False") # for compatability with old code
+lookup = info.query("FixCO2==False") # for compatibility with old code
 lookup_fix = info.query("FixCO2==True")
 #references = {'Historical': 'xnyvh', 'Control': 'xoauj', 'Spinup': 'xnnqm'}  # reference experiments
 references = {'Historical':'xovdz','Historical_bad': 'xnyvh','Historical_fixC':'xovdx','Control':'xovfj',
@@ -180,9 +180,9 @@ def read_forcing(var, exper, use_cache=True,readCube=False,decadal=False):
         read_fn = read_data
 
 
-    cube = read_fn('AtmC', exper,use_cache=use_cache,decadal=decadal)
+    cube = read_fn('AtmCO2', exper,use_cache=use_cache,decadal=decadal)
     # get in the control values (which we are using as a reference)
-    ref_atm_co2  = read_fn('AtmC', references['Control'], use_cache=use_cache).collapsed('time',iris.analysis.MEAN) #mean in time.
+    ref_atm_co2  = 4.4e-4 # PI value
     f = cube/ref_atm_co2
     f = 5.35 * iris.analysis.maths.log(f)  # Myhre formula.
     f.units=cf_units.Unit('W m-2') # forcing is W/m^2
@@ -230,6 +230,8 @@ var_lookup = {
     'AtmC': dict(file='mass_fraction_of_carbon_dioxide_in_air.nc',
                    Constraint=iris.Constraint(model_level_number=11), method=iris.analysis.SUM,
                    scale=CO2_to_C * mAtmCol * 1e-12, units=PgC),
+    'AtmCO2': dict(file='mass_fraction_of_carbon_dioxide_in_air.nc',
+                 Constraint=iris.Constraint(model_level_number=11)),
     'AtmCO2_Profile': dict(file='mass_fraction_of_carbon_dioxide_in_air.nc',
                   method=iris.analysis.MEAN),
     'AtmT_Profile': dict(file='air_temperature_3.nc', method=iris.analysis.MEAN,

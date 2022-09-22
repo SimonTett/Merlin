@@ -61,8 +61,7 @@ for var, ax, ytitle, title in zip(varsPlot, axes.T.flatten(), xtitles, titles):
             if var in smoothVars:
                 t = ts.rolling_window('time', iris.analysis.MEAN, 11)
             # generate name
-            name = merlinLib.gen_name(k)
-            ax.plot(t.coord('year').points, t.data, label=name, markevery=(startIndx,105), **prop,zorder=100)
+            ax.plot(t.coord('year').points, t.data,markevery=(startIndx,105), **prop,zorder=100)
             startIndx += 10
         ax.fill_between(ax.get_xlim(), 2 * sd[var], -2 * sd[var], color='grey', alpha=0.4)
 

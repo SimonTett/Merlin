@@ -5,13 +5,24 @@ Plot timeseries for fixed CO2 simulations
 import merlinLib
 import matplotlib.pyplot as plt
 import iris.plot
-
+ppt=False # set False if want figure for paper
 varsPlot = ['AtmC', 'OcC', 'LandC','Forcing','SAT', 'icef']
 smoothVars = [var for var in varsPlot if var[-1] != 'C' ]
 titles = ['Atmosphere C','Ocean C', 'Land C', 'CO$_2$ Forcing','Sfc. Air Temp.', 'Ice Area']
 xtitles = ['Pg C', 'Pg C','Pg C','Wm$^{-2}$','K', r'$10^{12}$m$^2$']
-fig,axes = plt.subplots(nrows=3,ncols=2,clear=True,figsize=[7.5,8],num='fix_co2_sims',sharex=True,
-                        gridspec_kw=dict(wspace=0.25,top=0.95,bottom=0.15))
+if ppt:
+    figSize=[11,8]
+    nrows=2
+    ncols=3
+    name='fix_co2_sims_ppt'
+else:
+    figSize=[7.5,8]
+    nrows=3
+    ncols=2
+    name='fix_co2_sims'
+
+fig,axes = plt.subplots(nrows=nrows,ncols=ncols,clear=True,figsize=figSize,num=name,sharex=True,
+                        gridspec_kw=dict(wspace=0.25,top=0.95,bottom=0.1))
 for var,title,xtitle,ax in zip(varsPlot,titles,xtitles,axes.T.flatten()):
     for name, experiment in merlinLib.lookup_fix.iterrows():
         ts= merlinLib.delta(var,name,refName=experiment.Reference)
