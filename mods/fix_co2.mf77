@@ -1,0 +1,12 @@
+*ID STFIXCO2
+*/
+*/
+*/ **********************************************************
+*/ Mod by Simon Tett to use CO2 from namelist for Radn 
+*/ in interactive carbon cycle. Suppreses 
+*/ Climate/Carbon feedbacks so allowing understanding of
+*/ importance of such feedbacks. Only changes RADCTL1
+*DECLARE RAD_CTL1
+*D ACN2F405.57
+            CO2_3D(I, LEVEL) = CO2_MMR ! use namelist value not CC
+
