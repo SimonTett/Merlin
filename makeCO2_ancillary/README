@@ -1,0 +1,4 @@
+Scripts and data to construct CO2 ancillary file.
+
+CO2_ancil.py -- code to produce output netcdf file ready for conversion to a UM ancillary
+Zero_emissions_1000Gt_100yr_10_slo.csv -- driving file for case with 1000 Gt drawdown taking place over 100 years rather than 10 years.

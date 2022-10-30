@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import FuncFormatter
 import xarray # to support conversion from iris cubes to xarray DataArray's
-# and turn off all the anoying warning messages from iris.
+# and turn off all the annoying warning messages from iris.
 import warnings
 warnings.filterwarnings("ignore", message="Collapsing a non-contiguous coordinate.")
 warnings.filterwarnings("ignore",message = "Collapsing spatial coordinate")
